@@ -1,86 +1,78 @@
-import { useState, useEffect } from 'react'
-import { getPortfolio, getDashboard } from '../services/api'
+import { usePortfolio, useDashboard } from '../hooks'
+import { LoadingSpinner, ErrorAlert, RefreshIcon } from '../components/common'
 import PortfolioCard from '../components/PortfolioCard'
 import TopMovers from '../components/TopMovers'
 import RecentNews from '../components/RecentNews'
 import ActiveAlerts from '../components/ActiveAlerts'
 
 const Dashboard = () => {
-  const [performance, setPerformance] = useState(null)
-  const [dashboardData, setDashboardData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true)
-        
-        // Fetch both portfolio and dashboard data in parallel
-        const [portfolioResponse, dashboardResponse] = await Promise.all([
-          getPortfolio(),
-          getDashboard()
-        ])
-        
-        setPerformance(portfolioResponse.data.data)
-        setDashboardData(dashboardResponse.data.data)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err)
-        setError('Failed to load dashboard data. Please try again later.')
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchDashboardData()
-  }, [])
+  // Use custom hooks with 30 second polling
+  const portfolio = usePortfolio(30000)
+  const dashboard = useDashboard(30000)
+  
+  // Combined loading and error states
+  // Combined loading and error states
+  const loading = portfolio.loading || dashboard.loading
+  const error = portfolio.error || dashboard.error
+  const lastUpdated = portfolio.lastUpdated || dashboard.lastUpdated
+  const isRefreshing = false // We'll handle this through the hooks
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6 text-gray-900">Dashboard</h1>
+    <div className="min-h-screen">
+      {/* Header with Last Updated Info */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        {lastUpdated && !loading && (
+          <div className="flex items-center space-x-3 text-sm">
+            <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+            </div>
+            {isRefreshing && (
+              <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
+                <RefreshIcon className="w-4 h-4 animate-spin" />
+                <span className="text-xs">Updating...</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
       
-      {loading && (
-        <div className="bg-white p-12 rounded-lg shadow text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      )}
+      {loading && <LoadingSpinner message="Loading dashboard..." className="animate-fadeIn" />}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
-          <p className="font-semibold">Error</p>
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <ErrorAlert message={error} className="mb-6 animate-slideDown" />}
 
       {!loading && !error && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fadeIn">
           {/* Portfolio Performance Section */}
-          {performance && <PortfolioCard performance={performance} />}
+          {portfolio.data && (
+            <div className="transition-all duration-300 hover:shadow-lg">
+              <PortfolioCard performance={portfolio.data} />
+            </div>
+          )}
           
           {/* Active Alerts Section */}
-          {dashboardData && dashboardData.activeAlerts && (
-            <ActiveAlerts alerts={dashboardData.activeAlerts} />
+          {dashboard.activeAlerts.length > 0 && (
+            <div className="transition-all duration-300 hover:shadow-lg">
+              <ActiveAlerts alerts={dashboard.activeAlerts} />
+            </div>
           )}
           
           {/* Top Movers and News Grid Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Left Column - Top Movers (Gainers and Losers stacked) */}
-            <div className="lg:col-span-1">
-              {dashboardData && (
-                <TopMovers 
-                  topGainers={dashboardData.topGainers} 
-                  topLosers={dashboardData.topLosers}
-                  compact={true}
-                />
-              )}
+            <div className="lg:col-span-1 transition-all duration-300 hover:scale-[1.02]">
+              <TopMovers 
+                topGainers={dashboard.topGainers} 
+                topLosers={dashboard.topLosers}
+                compact={true}
+              />
             </div>
 
             {/* Right Column - Recent News */}
-            <div className="lg:col-span-2">
-              {dashboardData && dashboardData.recentNews && (
-                <RecentNews news={dashboardData.recentNews} />
+            <div className="lg:col-span-2 transition-all duration-300 hover:shadow-lg">
+              {dashboard.recentNews.length > 0 && (
+                <RecentNews news={dashboard.recentNews} />
               )}
             </div>
           </div>
@@ -89,5 +81,4 @@ const Dashboard = () => {
     </div>
   )
 }
-
 export default Dashboard
