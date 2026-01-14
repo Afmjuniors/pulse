@@ -14,7 +14,7 @@ import { formatCurrency, formatVolume, formatPercent } from '../utils/formatters
 
 const Assets = () => {
   // Use the custom hook
-  const { stocks = [], crypto = [], loading, error } = useAssets()
+  const { stocks, crypto, loading, error } = useAssets()
   
   // Local state for filtering, pagination, search, and sorting
   const [filter, setFilter] = useState('all') // 'all', 'stocks', 'crypto'
@@ -80,13 +80,11 @@ const Assets = () => {
     let assets = []
     
     if (filter === 'all' || filter === 'stocks') {
-      const stocksWithType = stocks.map(stock => ({ ...stock, type: 'Stock' }))
-      assets = [...assets, ...stocksWithType]
+      assets = [...assets, ...stocks.map(stock => ({ ...stock, type: 'Stock' }))]
     }
     
     if (filter === 'all' || filter === 'crypto') {
-      const cryptoWithType = crypto.map(c => ({ ...c, type: 'Crypto' }))
-      assets = [...assets, ...cryptoWithType]
+      assets = [...assets, ...crypto.map(c => ({ ...c, type: 'Crypto' }))]
     }
     
     // Apply search filter
@@ -130,19 +128,19 @@ const Assets = () => {
             onClick={() => setFilter('all')}
             variant={filter === 'all' ? 'primary' : 'default'}
           >
-            All ({(stocks?.length || 0) + (crypto?.length || 0)})
+            All ({stocks.length + crypto.length})
           </Button>
           <Button
             onClick={() => setFilter('stocks')}
             variant={filter === 'stocks' ? 'primary' : 'default'}
           >
-            Stocks ({stocks?.length || 0})
+            Stocks ({stocks.length})
           </Button>
           <Button
             onClick={() => setFilter('crypto')}
             variant={filter === 'crypto' ? 'primary' : 'default'}
           >
-            Crypto ({crypto?.length || 0})
+            Crypto ({crypto.length})
           </Button>
         </div>
       </div>      {/* Search Bar */}
